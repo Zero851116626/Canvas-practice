@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        body{
+            margin:0;
+            padding:0;
+        }
+        canvas{
+            background-color:black;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <script>
+        class Anim{
+            constructor(str){
+                this.oC = document.querySelector(str);
+                this.init();
+            }
+            init(){
+                /*
+                    作用：初始化
+                    初始化画布，舒适化输出内容，初始化喷射列表，初始化最大喷射量
+                */
+                //初始化画布
+                //获取其2d
+                this.cxt = this.oC.getContext("2d");
+                //定义绘画字符
+                this.letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+                //定义数组的最大长度
+                this.maxParticle = 100;
+                //喷射的数组
+                this.particles = [];
+                //初始化结束后，执行一次窗口检测功能
+                this.resize();
+                //如果窗口大小发生变化，需要继续检测窗口大小的变化
+                //这里可实现实时监听，但是实时监听可能会浪费性能，所以可以使用节流功能
+                window.addEventListener("resize",()=>{this.resize()})
+            
+                //所有的前置条件都设置好了，然后就需要动起来
+                this.loop();
+            }
+
+            resize(){
+                /*
+                    窗口初始化，让画布随着窗口大小变化
+
+                */
+               this.w = this.oC.width = window.innerWidth;
+               this.h = this.oC.height = window.innerHeight;
+            
+            }
+
+            loop(){
+                //这个函数的功能就是为了让画布不断的清除，绘制
+                this.render();
+                //定时器的作用对象是window，我们需要把他的作用对象绑定在anim上，而且需要不断的执行
+                //call，apply执行执行一次，所以这里就用bind直接改写this，实现绑定；
+                requestAnimationFrame(this.loop.bind(this));
+            }
+
+            render(){
+                //完成渲染功能，主要是喷射功能逻辑，
+                //在字符列表中不断地添加新的字符及其属性
+                this.particles.push({
+                    //x,y代表了喷射点的起始位置，所有的字符都是从这个位置开始喷射
+                    x:this.w/2,
+                    y:this.h,
+                    //分别代表每个喷射字母的水平移动速度和竖直移动速度
+                    xSpeed:(Math.random()*10)-5,
+                    ySpeed:(Math.random()*20)-10,
+                    //为了渲染出随机字母，所以取随机数然后取整
+                    font:this.letters[Math.floor(Math.random()*this.letters.length)],
+                    //为字母设置颜色
+                    color:[255,255,255,0.8],
+                })
+                //清理画布和重绘画布只能实现动态效果，但是依然无法删除不想要的部分
+                //清理画布
+                this.cleanParticles();
+                //渲染画布
+                this.drawparticle();
+            }
+            
+            drawparticle(){
+                //在画布上绘画
+                for(let i = 0,pCount = this.particles.length;i<pCount;i++){
+                  
+                    //为每一个字符设置颜色，颜色的格式为hsla
+                    let particle = this.particles[i],
+                        h = particle.color[0],
+                        s = particle.color[1]+"%",
+                        l = particle.color[2]+"%",
+                        a = particle.color[3];
+                    let hsla = `hsla(${h},${s},${l},${a})`;
+                    //画画，规定字体和大小
+                    this.cxt.font = "12px 微软雅黑";
+                    //画画阶段，为画笔添加颜色
+                    this.cxt.fillStyle = hsla;
+                    //这只本次绘画的位置
+                    this.cxt.fillText(particle.font,particle.x,particle.y)
+                    
+                    //字母要动起来，也就是控制每个字母的坐标位置，x，y
+                    particle.x += particle.xSpeed;
+                    particle.y += particle.ySpeed;
+                    //乘以一个小于1 数字，会让他逐渐发散
+                    particle.y *= 0.95;
+                    //颜色值色相，+1，体现色相变化；
+                    particle.color[0] += 0.2;
+                    particle.color[1] *= 1.5;
+                    
+                    //调用拖尾效果
+                    this.fade()
+                }
+            }
+
+            fade(){
+                //制作拖尾效果,利用蒙版
+                this.cxt.fillStyle = "rgba(0,0,0,0.07)";
+                this.cxt.fillRect(0,0,this.w,this.h);
+            }
+
+            cleanParticles(){
+                //减少数组的长度,如果数组长度大于100，那么就将数组前端的项目移除
+                if(this.particles.length>=100){
+                    this.particles.shift();
+                }
+            }
+
+        }
+
+        let canvas = new Anim("canvas")
+    </script>
+</body>
+</html>
